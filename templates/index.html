@@ -13,31 +13,27 @@
       </div>
     </nav>
     <br>
-    <div style="text-align:center;">
-        <h4>Select Grade Level</h4>
-        <form action="/submit" method="POST">
-          <select class="form-select" aria-label="Default select example" style="text-align:center;">
-            <option style="text-align:center;" selected>Select Grade</option>
-            <option style="text-align:center;" value="1">7th</option>
-            <option style="text-align:center;" value="1">8th</option>
-            <option style="text-align:center;" value="1">9th</option>
-            <option style="text-align:center;" value="1">10th</option>
-            <option style="text-align:center;" value="1">11th</option>
-            <option style="text-align:center;" value="1">12th</option>
-          </select>
-       </form>
+       <div class="d-flex justify-content-center align-items-center vh-20">
+        <div class="mb-3 border p-5">
+            <div class="input-group mb-3">
+              <span class="input-group-text" id="basic-addon1">ID</span>
+              <input type="text" class="form-control" placeholder="00000" aria-label="Username" aria-describedby="basic-addon1">
+            </div>
+        </div>
     </div>
-    <div style="text-align:center; display:none;">
-        <h4>Select Student</h4>
-        <select class="form-select" aria-label="Default select example" style="text-align:center;">
-          <option style="text-align:center;" selected>Select Student</option>
-          <option style="text-align:center;" value="1">student 1</option>
-        </select>
+    <div class="d-flex justify-content-center align-items-center vh-20">
+        <div class="mb-3 border p-5">
+           <h1>Barcode Scanner</h1>
+           <img src="{{ url_for('video_feed') }}" width="640" height="480">
+        </div>
     </div>
+
+
+
     
     
     
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
   </body>
 </html>
