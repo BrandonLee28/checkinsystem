@@ -10,7 +10,8 @@
   <!-- DASHBOARD IF YOU NEED TO CHECK IN --!>
     <nav class="navbar" style="background-color: #002F56;" display=none>
       <div class="container-fluid">
-        <span style="color:white;" class="navbar-brand mb-0 h1"><h1>Check In</h1></span>
+        <span style="color:white;" class="navbar-brand mb-0 h1"><h1>Check Out</h1></span>
+        <a class="btn btn-danger" href="/logout" role="button">Cancel</a>
       </div>
     </nav>
     <br>
@@ -18,33 +19,35 @@
         <div class="mb-3 border p-5">
             <div class="jumbotron">
               <div class="container">
-                <h1 class="display-3">Hello, Brandon!</h1>
+                <h1 class="display-3">Hello, {{ student.name }}!</h1>
                 <hr>
-                <p>Why are you checking in late?</p>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1">
-                  <label class="form-check-label" for="flexRadioDefault1">
-                    Study Hall (First Hour)
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2">
-                  <label class="form-check-label" for="flexRadioDefault2">
-                    Doctor's Appointment
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault2">
-                  <label class="form-check-label" for="flexRadioDefault2">
-                    Doctor's Appointment
-                  </label>
-                </div>
-                <br>
-                <button type="button" class="btn" style="background-color: #002F56; color:white;"><h4>Check In</h4></button>
+                <p>Why are you checking out?</p> 
+                <form method="POST" action="{{ url_for('checkout') }}">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="reason" value="Study Hall" id="flexRadioDefault1">
+                    <label class="form-check-label" for="flexRadioDefault1">
+                      Study Hall (First Hour)
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="reason" value="Doctor's Appointment" id="flexRadioDefault2">
+                    <label class="form-check-label" for="flexRadioDefault2">
+                      Doctor's Appointment
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="reason" value="Other" id="flexRadioDefault2">
+                    <label class="form-check-label" for="flexRadioDefault2">
+                      other
+                    </label>
+                  </div>
+                  <br>
+                  <button type="submit" class="btn" style="background-color: #002F56; color:white;"><h4>Check Out</h4></button>
+                </form>
 
-                <div class="offcanvas offcanvas-start show" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
+                <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
                   <div class="offcanvas-header" style="text-align:center;">
-                    <h5 class="offcanvas-title" id="offcanvasExampleLabel">Checked In</h5>
+                    <h5 class="offcanvas-title" id="offcanvasExampleLabel">Checked Out</h5>
                   </div>
                   <div class="offcanvas-body">
                     <div>
@@ -71,9 +74,9 @@
 
 
 
-    
-    
-    
+
+
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
   </body>

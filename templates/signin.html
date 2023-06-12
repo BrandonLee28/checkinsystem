@@ -10,24 +10,46 @@
     <nav class="navbar" style="background-color: #002F56;">
       <div class="container-fluid">
         <span style="color:white;" class="navbar-brand mb-0 h1"><h1>Sign In</h1></span>
+
       </div>
     </nav>
     <br>
-    <div class="d-flex align-items-center justify-content-center" style="padding:"> 
-    <div class="jumbotron">
-      <div class="container">
-        <h1 class="display-3">Enter your Student ID Number</h1>
+    <div class="d-flex align-items-center justify-content-center" style="padding:">
+      <div class="jumbotron">
+        <div class="container">
+          <h1 class="display-3">Enter your Student ID Number</h1>
+          <hr>
+          <form method="POST" action="{{ url_for('signin') }}">
+            <div class="input-group input-group-lg mb-3">
+              <span class="input-group-text" id="basic-addon1">ID</span>
+              <input type="text" class="form-control" placeholder="00000" aria-label="Username" aria-describedby="basic-addon1" name="student_id" id="student_id" required>
+            </div>
+            <div class="btn-group d-flex justify-content-end" role="group" aria-label="Basic mixed styles example">
+              <button type="submit" name="checkin" class="btn btn-success">Check In</button>
+              <button type="submit" name="checkout" class="btn btn-danger">Check Out</button>
+            </div>
+           </form>
+           <br></br>
+           {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages">
+                    {% for message in messages %}
+                        <div class="alert alert-danger" role="alert">
+                          {{ message }}
+                        </div>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        </div>
+       </div>
+     </div>
+     <div class="d-flex align-items-center justify-content-center" style="padding:">
+       <div class="jumbotron">
+        <h1 class="display-3">Scan your Student Barcode</h1>
         <hr>
-        <div class="input-group input-group-lg mb-3">
-          <span class="input-group-text" id="basic-addon1">ID</span>
-          <input type="text" class="form-control" placeholder="00000" aria-label="Username" aria-describedby="basic-addon1">
-        </div>
-        </div>
-        <div class="btn-group " role="group" aria-label="Basic mixed styles example">
-          <button type="button" class="btn btn-danger">Check In</button>
-          <button type="button" class="btn btn-success">Check Out</button>
-        </div>
-      </div>
+        <img src="{{ url_for('video_feed') }}" width="640" height="480">
+       </div>
      </div>
 
 
