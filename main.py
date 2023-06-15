@@ -1,9 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, Response
+from flask import Flask, render_template, redirect, url_for, request, flash, Response, send_file
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 import cv2
+import io
 from pyzbar import pyzbar
 from student import StudentUserTerminal
 import sqlite3
+import time
+from excel import export_cursor_to_xlsx
 
 app = Flask(__name__)
 app.secret_key = 'cancun'
@@ -42,47 +45,6 @@ def load_user(user_id):
         # Create and return the User object
         return User(id, name, check_in_time, check_out_time, checkedin, role, reason)
 
-def generate_frames():
-    camera = cv2.VideoCapture(0)
-
-    while True:
-        success, frame = camera.read()
-        if not success:
-            break
-
-        # Convert the frame to grayscale for barcode detection
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Detect barcodes in the grayscale frame
-        barcodes = pyzbar.decode(gray)
-
-        for barcode in barcodes:
-            # Extract the barcode data and type
-            barcode_data = barcode.data.decode('utf-8')
-            barcode_type = barcode.type
-
-            # Draw a rectangle around the detected barcode
-            (x, y, w, h) = barcode.rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            # Display the barcode data as text on the frame
-            cv2.putText(frame, barcode_data, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
-            # Output the barcode data to the console
-            print('Detected Barcode:', barcode_data)
-
-        # Encode the frame as JPEG
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-    camera.release()
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/checkin', methods=['GET', 'POST'])
@@ -94,8 +56,31 @@ def checkin():
         reason = request.form.get('reason')
 
         terminal.check_in(current_user.id,reason)
-        return redirect(url_for('logout'))
+
+        return render_template("checkinsplash.html"), {"Refresh": "2; url=/logout"}
+
+
     return render_template("checkin.html", student=current_user)
+
+@app.route('/admindashboard/download', methods=['GET', 'POST'])
+@login_required
+def exceldownload():
+    if current_user.role == 'Admin':
+        conn = sqlite3.connect('students.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
+
+        # Export the cursor data to an Excel file
+        excel_buffer = export_cursor_to_xlsx(cursor)
+
+        cursor.close()
+        conn.close()
+
+        # Send the Excel file as a response for download
+        return send_file(excel_buffer,download_name="output.xlsx")
+    else:
+        return redirect(url_for('signin'))
+
 
 @app.route('/checkout', methods=['GET', 'POST'])
 @login_required
@@ -104,7 +89,8 @@ def checkout():
         terminal = StudentUserTerminal("students.db")
         reason = request.form.get('reason')
         terminal.check_out(current_user.id,reason)
-        return redirect(url_for('logout'))
+        return render_template("checkoutsplash.html"), {"Refresh": "2; url=/logout"}
+
     return render_template("checkout.html", student=current_user)
 
 @app.route('/adminlogin', methods=['GET', 'POST'])
@@ -129,18 +115,37 @@ def adminlogin():
 @app.route('/admindashboard', methods=['GET','POST'])
 @login_required
 def admindashboard():
+    if request.method == "POST":
+        name = request.form['name']
+        name = name.lower()
+        name = name.capitalize()
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM students WHERE name = ?" , (name,))
+        students = cur.fetchall()
+        return render_template('admin_dashboard.html', students=students)
     conn = sqlite3.connect('students.db')
     cur = conn.cursor()
-    cur.execute("SELECT * FROM students WHERE student_id != 'admin'")
+    cur.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
     students = cur.fetchall()
-    print(students[0][0])
     if current_user.role == 'Admin':
         return render_template('admin_dashboard.html', students=students)
     else:
         return redirect(url_for('signin'))
 
-
-
+@app.route('/admindashboard/sort_by_<column>/<order>')
+@login_required
+def sort_students(column,order):
+    conn = sqlite3.connect('students.db')
+    cur = conn.cursor()
+    query = f"SELECT * FROM students WHERE student_id != 'admin' ORDER BY {column} {order.upper()}"
+    cur.execute(query)
+    students = cur.fetchall()
+    conn.close()
+    if current_user.role == 'Admin':
+        return render_template('admin_dashboard.html', students=students)
+    else:
+        return redirect(url_for('signin'))
 
 @app.route('/', methods=['GET', 'POST'])
 def signin():

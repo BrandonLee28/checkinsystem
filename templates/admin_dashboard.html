@@ -7,49 +7,62 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <script src="https://kit.fontawesome.com/017791a05d.js" crossorigin="anonymous"></script>
   </head>
-  <body>
-  <!-- DASHBOARD IF YOU NEED TO CHECK IN --!>
+  <body >
+    <!-- DASHBOARD IF YOU NEED TO CHECK IN -->
     <nav class="navbar" style="background-color: #002F56;" display=none>
       <div class="container-fluid">
-        <span style="color:white;" class="navbar-brand mb-0 h1"><h1>Admin Dashboard</h1></span>
+        <span style="color:white;" class="navbar-brand mb-0 h1" ><h1><a style="text-decoration:none;color:white;" href="/admindashboard">Admin Dashboard</a></h1></span>
         <a class="btn btn-danger" href="/" role="button">Cancel</a>
       </div>
     </nav>
     <br>
+    <form method="POST" action="{{ url_for('admindashboard') }}">
+        <div style="padding-left: 20px; padding-right:20px;" class="input-group mb-3">
+          <input type="text" class="form-control" name="name" id="name" placeholder="Name" aria-label="Recipient's username" aria-describedby="basic-addon2">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+          </div>
+        </div>
+    </form>
     <table class="table">
-  <thead style="text-align:center;">
-    <tr>
-      <th scope="col">#</th>
-      <th scope="col">Name</th>
-      <th scope="col">Check In Time Today</th>
-      <th scope="col">Check Out Time Today</th>
-      <th scope="col">Reason</th>
-      <th scope="col">Check In/Check Out</th>
-
-      
-
-    </tr>
-  </thead>
-  <tbody style="text-align:center;">
-    <tr>
-    {% if students %}
-      {% for student in students %}
-      <td>{{ student[1]}}</td>
-      <td>{{ student[2] }}</td>
-      <td>{{ student[3] }}</td>
-      <td>{{ student[4] }}</td>
-      <td>{{ student[7] }}</td>
-      <td>{% if student[5] == 1 %}
+      <thead style="text-align:center;">
+        <tr>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_student_id/asc">ID</a></th>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_name/asc">Name</a></th>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_check_in_time/asc">Check In Time Today</a></th>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_check_out_time/asc">Check Out Time Today</a></th>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_reason/asc">Reason</a></th>
+          <th scope="col"><a style="text-decoration:none;color:black;" href="/admindashboard/sort_by_checkedin/desc">Check In/Check Out</a></th>
+        </tr>
+      </thead>
+      <tbody style="text-align:center;">
+        <tr>
+          {% if students %}
+          {% for student in students %}
+          <td>{{ student[1] }}</td>
+          <td>{{ student[2] }}</td>
+          <td>{{ student[3] }}</td>
+          <td>{{ student[4] }}</td>
+          <td>{{ student[7] }}</td>
+          <td>
+            {% if student[5] == 1 %}
             <i class="fa-regular fa-circle-check" style="color: #14a144;"></i>
-          {% else %}
+            {% else %}
             <i class="fa-regular fa-circle-xmark" style="color: #dc4c64;"></i>
-          {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-   {% endif %}
-  </tbody>
-</table>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+    <div class="text-center">
+        <a href="/admindashboard/download" class="btn btn-success active" role="button" aria-pressed="true">Export</a>
+        <br>
+        <br>
+        <br>
+
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
   </body>
 </html>
