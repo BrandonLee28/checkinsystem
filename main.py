@@ -1,8 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, Response, send_file
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
-import cv2
-import io
-from pyzbar import pyzbar
 from student import StudentUserTerminal
 import sqlite3
 import time
