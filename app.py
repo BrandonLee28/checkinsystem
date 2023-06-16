@@ -2,8 +2,12 @@ from flask import Flask, render_template, redirect, url_for, request, flash, Res
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from student import StudentUserTerminal
 import sqlite3
-import time
 from excel import export_cursor_to_xlsx
+from datetime import datetime, timedelta, date
+import threading
+import re
+
+
 
 app = Flask(__name__)
 app.secret_key = 'cancun'
@@ -12,35 +16,35 @@ login_manager.login_view = "signin"
 
 # User model
 class User(UserMixin):
-    def __init__(self, id,name,check_in_time,check_out_time,checkedin,role, reason):
+    def __init__(self, id,name,check_in_time,check_out_time,checkedin,checkedout,role, reason):
         self.id = id
         self.name = name
         self.check_in_time = check_in_time
         self.check_out_time = check_out_time
         self.checkedin = checkedin
+        self.checkedout = checkedout
         self.role = role
+        self.reason = reason
+
 @login_manager.user_loader
 def load_user(user_id):
-        # Here, you need to retrieve the user's information from the database based on the provided user_id
-        # For simplicity, let's assume you have a function `get_user_by_id` that retrieves the user's information from the database
         conn = sqlite3.connect('students.db')
         cur = conn.cursor()
         cur.execute("SELECT * FROM students WHERE student_id = ?", (user_id,))
-        user_data = cur.fetchone()  # Fetch the result of the query
+        user_data = cur.fetchone()
 
 
-        # Extract the necessary values from the user_data
+        if user_data is None:
+            return None  # Return None if no user data is fouxnd
         id = user_data[1]
         name = user_data[2]
         check_in_time = user_data[3]
         check_out_time = user_data[4]
         checkedin = user_data[5]
-        role = user_data[6]
-        reason = user_data[7]
-
-
-        # Create and return the User object
-        return User(id, name, check_in_time, check_out_time, checkedin, role, reason)
+        checkedout = user_data[6]
+        role = user_data[7]
+        reason = user_data[8]
+        return User(id, name, check_in_time, check_out_time, checkedin, checkedout, role, reason)
 
 
 
@@ -102,7 +106,7 @@ def adminlogin():
         print(admin)
         conn.close()
         if admin[2] == password:
-            user_obj = User(admin[1],admin[2],admin[3],admin[4],admin[5],admin[6],admin[7])
+            user_obj = User(admin[1],admin[2],admin[3],admin[4],admin[5],admin[6],admin[7],admin[8])
             login_user(user_obj)
             return redirect(url_for('admindashboard'))
         else:
@@ -113,14 +117,21 @@ def adminlogin():
 @login_required
 def admindashboard():
     if request.method == "POST":
-        name = request.form['name']
-        name = name.lower()
-        name = name.capitalize()
-        conn = sqlite3.connect('students.db')
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM students WHERE name = ?" , (name,))
-        students = cur.fetchall()
-        return render_template('admin_dashboard.html', students=students)
+        if 'search_submit' in request.form:
+            name = request.form['name']
+            name = name.lower()
+            name = name.capitalize()
+            conn = sqlite3.connect('students.db')
+            cur = conn.cursor()
+            query = f"SELECT * FROM students WHERE name LIKE '{name}%' AND student_id != 'admin'"
+            cur.execute(query)
+            students = cur.fetchall()
+            return render_template('admin_dashboard.html', students=students)
+
+        elif 'date_submit' in request.form:
+            date = request.form['date']
+            return redirect(f"/admindashboard/{date}")
+
     conn = sqlite3.connect('students.db')
     cur = conn.cursor()
     cur.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
@@ -129,6 +140,55 @@ def admindashboard():
         return render_template('admin_dashboard.html', students=students)
     else:
         return redirect(url_for('signin'))
+
+def is_current_date(input_date):
+    current_date = date.today()
+    print(current_date)
+    return input_date == current_date
+
+def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name, columns_to_clear):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+
+    # Duplicate the table
+    cursor.execute(f"CREATE TABLE {duplicate_table_name} AS SELECT * FROM {original_table_name}")
+
+    # Remove data from specified columns in the original table
+    for column in columns_to_clear:
+        cursor.execute(f"UPDATE {original_table_name} SET {column} = NULL")
+
+    # Commit the changes
+    conn.commit()
+
+    # Close the database connection
+    conn.close()
+
+@app.route("/admindashboard/<date>")
+@login_required
+def admintabledate(date):
+    if current_user.role == 'Admin':
+        if is_current_date(date):
+            conn = sqlite3.connect('students.db')
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
+            students = cur.fetchall()
+            return render_template('admindate_dashboard.html', date=date, students=students)
+        if not re.match(r"\d{4}-\d{2}-\d{2}", date):
+            return redirect(url_for('admindashboard'))
+        else:
+            conn = sqlite3.connect('students.db')
+            cur = conn.cursor()
+            date_object = datetime.strptime(date, "%Y-%m-%d")
+            formatted_date = 'd' + date_object.strftime("%Y%m%d")
+            cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
+            students = cur.fetchall()
+            if students == None:
+                return redirect(url_for('admindashboard'))
+            return render_template('admindate_dashboard.html', date=date, students=students)
+    else:
+        return redirect(url_for('signin'))
+
+
 
 @app.route('/admindashboard/sort_by_<column>/<order>')
 @login_required
@@ -158,7 +218,7 @@ def signin():
         user = cur.fetchone()
         conn.close()
         if user is not None:
-            user_obj = User(user[1],user[2],user[3],user[4],user[5],user[6],user[7])
+            user_obj = User(user[1],user[2],user[3],user[4],user[5],user[6],user[7], user[8])
             login_user(user_obj)
             if 'checkin' in request.form:
                 if terminal.is_checked_in(id):
@@ -180,6 +240,22 @@ def logout():
     logout_user()
     return redirect(url_for('signin'))
 
+def perform_action():
+    while True:
+        now = datetime.now()
+        tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        time_to_wait = (tomorrow - now).total_seconds()
+
+        # Wait until the next day starts
+        threading.Event().wait(timeout=time_to_wait)
+        current_date = date.today()
+        duplicate_table_name = 'd' + current_date.strftime("%Y%m%d")
+        # Perform your desired action here
+        duplicate_and_clear_table('students.db', 'students', duplicate_table_name, ['check_in_time', 'check_out_time', 'checkedin','checkedout','reason'])
+
+action_thread = threading.Thread(target=perform_action)
+action_thread.daemon = True
+action_thread.start()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
