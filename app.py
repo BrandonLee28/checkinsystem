@@ -3,9 +3,10 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 from student import StudentUserTerminal
 import sqlite3
 from excel import export_cursor_to_xlsx
-from datetime import datetime, timedelta, date
+import datetime
 import threading
 import re
+
 
 
 
@@ -13,6 +14,8 @@ app = Flask(__name__)
 app.secret_key = 'cancun'
 login_manager = LoginManager(app)
 login_manager.login_view = "signin"
+current_day = None
+
 
 # User model
 class User(UserMixin):
@@ -25,6 +28,11 @@ class User(UserMixin):
         self.checkedout = checkedout
         self.role = role
         self.reason = reason
+
+@app.before_first_request
+def set_current_day():
+    global current_day
+    current_day = datetime.date.today()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -142,7 +150,7 @@ def admindashboard():
         return redirect(url_for('signin'))
 
 def is_current_date(input_date):
-    current_date = date.today()
+    current_date = datetime.date.today()
     print(current_date)
     return input_date == current_date
 
@@ -172,19 +180,25 @@ def admintabledate(date):
             cur = conn.cursor()
             cur.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
             students = cur.fetchall()
+            if students == None:
+                return redirect(url_for('admindashboard'))
             return render_template('admindate_dashboard.html', date=date, students=students)
+
         if not re.match(r"\d{4}-\d{2}-\d{2}", date):
             return redirect(url_for('admindashboard'))
         else:
             conn = sqlite3.connect('students.db')
             cur = conn.cursor()
-            date_object = datetime.strptime(date, "%Y-%m-%d")
-            formatted_date = 'd' + date_object.strftime("%Y%m%d")
-            cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
-            students = cur.fetchall()
-            if students == None:
+            try:
+                date_object = datetime.strptime(date, "%Y-%m-%d")
+                formatted_date = 'd' + date_object.strftime("%Y%m%d")
+                cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
+                students = cur.fetchall()
+                if students == None:
+                    return redirect(url_for('admindashboard'))
+                return render_template('admindate_dashboard.html', date=date, students=students)
+            except:
                 return redirect(url_for('admindashboard'))
-            return render_template('admindate_dashboard.html', date=date, students=students)
     else:
         return redirect(url_for('signin'))
 
@@ -206,6 +220,16 @@ def sort_students(column,order):
 
 @app.route('/', methods=['GET', 'POST'])
 def signin():
+    global current_day
+    today = datetime.date.today()
+    if today > current_day:
+        current_date = datetime.date.today()
+        yesterday = current_date - datetime.timedelta(days=1)
+        duplicate_table_name = 'd' + yesterday.strftime("%Y%m%d")
+        # Perform your desired action here
+        duplicate_and_clear_table('students.db', 'students', duplicate_table_name, ['check_in_time', 'check_out_time', 'checkedin','checkedout','reason'])
+        current_day = today
+
     if request.method == 'POST':
         if request.form['student_id'] == 'admin':
             return redirect(url_for('adminlogin'))
@@ -240,22 +264,6 @@ def logout():
     logout_user()
     return redirect(url_for('signin'))
 
-def perform_action():
-    while True:
-        now = datetime.now()
-        tomorrow = (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        time_to_wait = (tomorrow - now).total_seconds()
-
-        # Wait until the next day starts
-        threading.Event().wait(timeout=time_to_wait)
-        current_date = date.today()
-        duplicate_table_name = 'd' + current_date.strftime("%Y%m%d")
-        # Perform your desired action here
-        duplicate_and_clear_table('students.db', 'students', duplicate_table_name, ['check_in_time', 'check_out_time', 'checkedin','checkedout','reason'])
-
-action_thread = threading.Thread(target=perform_action)
-action_thread.daemon = True
-action_thread.start()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
