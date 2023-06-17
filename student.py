@@ -21,6 +21,7 @@ class StudentUserTerminal:
 
     def check_in(self, student_id,reason):
         current_time = datetime.now()
+        current_time = current_time.strftime("%H:%M:%S")
         self.cursor.execute('''UPDATE students SET check_in_time = ?, checkedin = 1, checkedout = 0, reason = ?
                                WHERE student_id = ?''', (current_time, reason, student_id))
         if self.cursor.rowcount > 0:
@@ -31,6 +32,7 @@ class StudentUserTerminal:
 
     def check_out(self, student_id, reason):
         current_time = datetime.now()
+        current_time = current_time.strftime("%H:%M:%S")
         self.cursor.execute('''UPDATE students SET check_out_time = ?, checkedin = 0, checkedout = 1, reason = ? WHERE student_id = ? AND  checkedin = 1''',(current_time, reason, student_id))
         if self.cursor.rowcount > 0:
             self.connection.commit()
