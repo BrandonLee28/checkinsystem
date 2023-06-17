@@ -4,8 +4,9 @@ from student import StudentUserTerminal
 import sqlite3
 from excel import export_cursor_to_xlsx
 import datetime
-import threading
 import re
+from dateutil import parser
+
 
 
 
@@ -29,31 +30,31 @@ class User(UserMixin):
         self.role = role
         self.reason = reason
 
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = sqlite3.connect('students.db')
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM students WHERE student_id = ?", (user_id,))
+    user_data = cur.fetchone()
+
+
+    if user_data is None:
+        return None  # Return None if no user data is fouxnd
+    id = user_data[1]
+    name = user_data[2]
+    check_in_time = user_data[3]
+    check_out_time = user_data[4]
+    checkedin = user_data[5]
+    checkedout = user_data[6]
+    role = user_data[7]
+    reason = user_data[8]
+    return User(id, name, check_in_time, check_out_time, checkedin, checkedout, role, reason)
+
 @app.before_first_request
 def set_current_day():
     global current_day
     current_day = datetime.date.today()
-
-@login_manager.user_loader
-def load_user(user_id):
-        conn = sqlite3.connect('students.db')
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM students WHERE student_id = ?", (user_id,))
-        user_data = cur.fetchone()
-
-
-        if user_data is None:
-            return None  # Return None if no user data is fouxnd
-        id = user_data[1]
-        name = user_data[2]
-        check_in_time = user_data[3]
-        check_out_time = user_data[4]
-        checkedin = user_data[5]
-        checkedout = user_data[6]
-        role = user_data[7]
-        reason = user_data[8]
-        return User(id, name, check_in_time, check_out_time, checkedin, checkedout, role, reason)
-
 
 
 @app.route('/checkin', methods=['GET', 'POST'])
@@ -151,7 +152,6 @@ def admindashboard():
 
 def is_current_date(input_date):
     current_date = datetime.date.today()
-    print(current_date)
     return input_date == current_date
 
 def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name, columns_to_clear):
@@ -174,6 +174,7 @@ def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name
 @app.route("/admindashboard/<date>")
 @login_required
 def admintabledate(date):
+    print(date)
     if current_user.role == 'Admin':
         if is_current_date(date):
             conn = sqlite3.connect('students.db')
@@ -186,22 +187,18 @@ def admintabledate(date):
 
         if not re.match(r"\d{4}-\d{2}-\d{2}", date):
             return redirect(url_for('admindashboard'))
+            print('here')
         else:
             conn = sqlite3.connect('students.db')
             cur = conn.cursor()
-            try:
-                date_object = datetime.strptime(date, "%Y-%m-%d")
-                formatted_date = 'd' + date_object.strftime("%Y%m%d")
-                cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
-                students = cur.fetchall()
-                if students == None:
-                    return redirect(url_for('admindashboard'))
-                return render_template('admindate_dashboard.html', date=date, students=students)
-            except:
+            date_object = parser.parse(date).date()
+            formatted_date = 'd' + date_object.strftime("%Y%m%d")
+            print(formatted_date)
+            cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
+            students = cur.fetchall()
+            if students is None:
                 return redirect(url_for('admindashboard'))
-    else:
-        return redirect(url_for('signin'))
-
+            return render_template('admindate_dashboard.html', date=date, students=students)
 
 
 @app.route('/admindashboard/sort_by_<column>/<order>')
@@ -249,11 +246,11 @@ def signin():
                     flash('You are already checked in', 'error')
                 else:
                     return redirect(url_for('checkin'))
-            if 'checkout' in request.form:
-                if terminal.is_checked_in(id):
-                    return redirect(url_for('checkout'))
-                else:
-                    flash('You are already checked out', 'error')
+                if 'checkout' in request.form:
+                    if terminal.is_checked_in(id):
+                        return redirect(url_for('checkout'))
+                    else:
+                        flash('You are already checked out', 'error')
             terminal.close()
     return render_template("signin.html")
 
@@ -266,4 +263,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
