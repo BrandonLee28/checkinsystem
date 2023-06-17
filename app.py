@@ -6,6 +6,7 @@ from excel import export_cursor_to_xlsx
 import datetime
 import re
 from dateutil import parser
+from pytz import timezone
 
 
 
@@ -16,6 +17,8 @@ app.secret_key = 'cancun'
 login_manager = LoginManager(app)
 login_manager.login_view = "signin"
 current_day = None
+tz = timezone('US/Eastern')
+
 
 
 # User model
@@ -53,6 +56,7 @@ def load_user(user_id):
 
 @app.before_first_request
 def set_current_day():
+    global tz
     global current_day
     current_day = datetime.date.today()
 
@@ -151,7 +155,7 @@ def admindashboard():
         return redirect(url_for('signin'))
 
 def is_current_date(input_date):
-    current_date = datetime.date.today()
+    current_date = datetime.date.today(tz)
     return input_date == current_date
 
 def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name, columns_to_clear):
