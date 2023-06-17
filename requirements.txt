@@ -3,3 +3,4 @@ flask-login==0.5.0
 Werkzeug==2.0.1
 openpyxl==3.0.7
 gunicorn
+python-dateutil
