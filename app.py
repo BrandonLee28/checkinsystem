@@ -130,6 +130,7 @@ def adminlogin():
 @app.route('/admindashboard', methods=['GET','POST'])
 @login_required
 def admindashboard():
+    global current_day
     if request.method == "POST":
         if 'search_submit' in request.form:
             name = request.form['name']
@@ -140,7 +141,7 @@ def admindashboard():
             query = f"SELECT * FROM students WHERE name LIKE '{name}%' AND student_id != 'admin'"
             cur.execute(query)
             students = cur.fetchall()
-            return render_template('admin_dashboard.html', students=students)
+            return render_template('admin_dashboard.html', students=students, date=current_day)
 
         elif 'date_submit' in request.form:
             date = request.form['date']
@@ -153,7 +154,7 @@ def admindashboard():
     cur.execute("SELECT * FROM students WHERE student_id != 'admin' ORDER BY name ASC")
     students = cur.fetchall()
     if current_user.role == 'Admin':
-        return render_template('admin_dashboard.html', students=students)
+        return render_template('admin_dashboard.html', students=students, date=current_day)
     else:
         return redirect(url_for('signin'))
 
@@ -214,6 +215,7 @@ def admintabledate(date):
 @app.route('/admindashboard/sort_by_<column>/<order>')
 @login_required
 def sort_students(column,order):
+    global current_day
     conn = sqlite3.connect('students.db')
     cur = conn.cursor()
     query = f"SELECT * FROM students WHERE student_id != 'admin' ORDER BY {column} {order.upper()}"
@@ -221,7 +223,7 @@ def sort_students(column,order):
     students = cur.fetchall()
     conn.close()
     if current_user.role == 'Admin':
-        return render_template('admin_dashboard.html', students=students)
+        return render_template('admin_dashboard.html', students=students, date=current_day)
     else:
         return redirect(url_for('signin'))
 
