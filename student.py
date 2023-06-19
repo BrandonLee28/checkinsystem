@@ -37,7 +37,7 @@ class StudentUserTerminal:
     def check_out(self, student_id, reason):
         current_time = datetime.now(tz)
         current_time = current_time.strftime("%H:%M:%S")
-        self.cursor.execute('''UPDATE students SET check_out_time = ?, checkedin = 0, checkedout = 1, reason = ? WHERE student_id = ? AND  checkedin = 1''',(current_time, reason, student_id))
+        self.cursor.execute('''UPDATE students SET check_out_time = ?, checkedin = 0, checkedout = 1, reason = ? WHERE student_id = ?''',(current_time, reason, student_id))
         if self.cursor.rowcount > 0:
             self.connection.commit()
             print(f"Student with ID {student_id} checked out at {current_time}.")
@@ -57,6 +57,14 @@ class StudentUserTerminal:
                 return True
             return False
 
+    def is_checked_out(self, student_id):
+        self.cursor.execute("SELECT checkedout FROM students WHERE student_id = ? AND check_out_time IS NOT NULL", (student_id,))
+        result = self.cursor.fetchone()
+        if result:
+            checked_out = result[0]
+            if checked_out:
+                return True
+            return False
     def close(self):
         self.connection.close()
 

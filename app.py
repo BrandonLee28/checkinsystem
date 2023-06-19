@@ -3,9 +3,10 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 from student import StudentUserTerminal
 import sqlite3
 from excel import export_cursor_to_xlsx
-import datetime
 import re
 from dateutil import parser
+from datetime import datetime, timedelta, date
+
 from pytz import timezone
 
 
@@ -58,7 +59,8 @@ def load_user(user_id):
 def set_current_day():
     global tz
     global current_day
-    current_day = datetime.date.today()
+    current_day = date.today()
+
 
 
 @app.route('/checkin', methods=['GET', 'POST'])
@@ -116,7 +118,6 @@ def adminlogin():
         cur = conn.cursor()
         cur.execute("SELECT * FROM students WHERE student_id = ?", (username,))
         admin = cur.fetchone()
-        print(admin)
         conn.close()
         if admin[2] == password:
             user_obj = User(admin[1],admin[2],admin[3],admin[4],admin[5],admin[6],admin[7],admin[8])
@@ -143,6 +144,8 @@ def admindashboard():
 
         elif 'date_submit' in request.form:
             date = request.form['date']
+            if not re.match(r"\d{4}-\d{2}-\d{2}", date):
+                return redirect(url_for('admindashboard'))
             return redirect(f"/admindashboard/{date}")
 
     conn = sqlite3.connect('students.db')
@@ -155,7 +158,10 @@ def admindashboard():
         return redirect(url_for('signin'))
 
 def is_current_date(input_date):
-    current_date = datetime.date.today(tz)
+    global tz
+    current_date = date.today()
+    current_date = str(current_date)
+    input_date = str(input_date)
     return input_date == current_date
 
 def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name, columns_to_clear):
@@ -178,7 +184,6 @@ def duplicate_and_clear_table(db_file, original_table_name, duplicate_table_name
 @app.route("/admindashboard/<date>")
 @login_required
 def admintabledate(date):
-    print(date)
     if current_user.role == 'Admin':
         if is_current_date(date):
             conn = sqlite3.connect('students.db')
@@ -189,20 +194,21 @@ def admintabledate(date):
                 return redirect(url_for('admindashboard'))
             return render_template('admindate_dashboard.html', date=date, students=students)
 
-        if not re.match(r"\d{4}-\d{2}-\d{2}", date):
+        if not re.match(r"\d{4}-\d{2}-\d{2}", date) or len(str(date)) != 10:
             return redirect(url_for('admindashboard'))
-            print('here')
         else:
-            conn = sqlite3.connect('students.db')
-            cur = conn.cursor()
-            date_object = parser.parse(date).date()
-            formatted_date = 'd' + date_object.strftime("%Y%m%d")
-            print(formatted_date)
-            cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
-            students = cur.fetchall()
-            if students is None:
+            try:
+                conn = sqlite3.connect('students.db')
+                cur = conn.cursor()
+                date_object = parser.parse(date).date()
+                formatted_date = 'd' + date_object.strftime("%Y%m%d")
+                cur.execute(f"SELECT * FROM {formatted_date} WHERE student_id != 'admin' ORDER BY name ASC")
+                students = cur.fetchall()
+                if students is None:
+                    return redirect(url_for('admindashboard'))
+                return render_template('admindate_dashboard.html', date=date, students=students)
+            except sqlite3.OperationalError or parser.ParserError:
                 return redirect(url_for('admindashboard'))
-            return render_template('admindate_dashboard.html', date=date, students=students)
 
 
 @app.route('/admindashboard/sort_by_<column>/<order>')
@@ -222,7 +228,7 @@ def sort_students(column,order):
 @app.route('/', methods=['GET', 'POST'])
 def signin():
     global current_day
-    today = datetime.date.today()
+    today = date.today()
     if today > current_day:
         current_date = datetime.date.today()
         yesterday = current_date - datetime.timedelta(days=1)
@@ -250,11 +256,11 @@ def signin():
                     flash('You are already checked in', 'error')
                 else:
                     return redirect(url_for('checkin'))
-                if 'checkout' in request.form:
-                    if terminal.is_checked_in(id):
-                        return redirect(url_for('checkout'))
-                    else:
-                        flash('You are already checked out', 'error')
+            if 'checkout' in request.form:
+                if terminal.is_checked_out(id):
+                    flash('You are already checked out', 'error')
+                else:
+                    return redirect(url_for('checkout'))
             terminal.close()
     return render_template("signin.html")
 
