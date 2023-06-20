@@ -56,13 +56,8 @@ def load_user(user_id):
 @app.before_first_request
 def set_current_day():
     global current_day
-    #bruh = time.localtime()
-    current_timestamp = time.time()
-    yesterday_timestamp = current_timestamp - 86400
-    yesterday_struct_time = time.localtime(yesterday_timestamp)
-    yesterday_datetime = datetime.datetime.fromtimestamp(yesterday_timestamp)
-    current_day = yesterday_datetime.strftime("%Y-%m-%d")
-    #current_day = time.strftime("%Y-%m-%d", bruh)
+    bruh = time.localtime()
+    current_day = time.strftime("%Y-%m-%d", bruh)
 
 
 
