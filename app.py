@@ -57,9 +57,9 @@ def load_user(user_id):
 
 @app.before_first_request
 def set_current_day():
-    global tz
     global current_day
-    current_day = date.today()
+    global tz
+    current_day = datetime.now(tz).date()
 
 
 
@@ -68,12 +68,14 @@ def set_current_day():
 def checkin():
     if request.method == 'POST':
         terminal = StudentUserTerminal("students.db")
-
         reason = request.form.get('reason')
-
         terminal.check_in(current_user.id,reason)
-
-        return render_template("checkinsplash.html"), {"Refresh": "2; url=/logout"}
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM students WHERE student_id = ?", (current_user.id,))
+        user = cur.fetchone()
+        time = user[3]
+        return render_template("checkinsplash.html",time=time), {"Refresh": "2; url=/logout"}
 
 
     return render_template("checkin.html", student=current_user)
@@ -105,7 +107,12 @@ def checkout():
         terminal = StudentUserTerminal("students.db")
         reason = request.form.get('reason')
         terminal.check_out(current_user.id,reason)
-        return render_template("checkoutsplash.html"), {"Refresh": "2; url=/logout"}
+        conn = sqlite3.connect('students.db')
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM students WHERE student_id = ?", (current_user.id,))
+        user = cur.fetchone()
+        time = user[4]
+        return render_template("checkoutsplash.html" , time=time), {"Refresh": "2; url=/logout"}
 
     return render_template("checkout.html", student=current_user)
 
@@ -246,6 +253,8 @@ def signin():
         conn = sqlite3.connect('students.db')
         cur = conn.cursor()
         id = request.form['student_id']
+        id = id.upper()
+        print(id)
         query = "SELECT * FROM students WHERE student_id = ?"
         cur.execute(query, (id,))
         user = cur.fetchone()
