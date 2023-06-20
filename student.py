@@ -4,6 +4,17 @@ from pytz import timezone
 
 tz = timezone('US/Eastern')
 
+def convert_to_am_pm(time):
+    hour, minute, second = map(int, time.split(':'))
+    suffix = 'AM' if hour < 12 else 'PM'
+    hour = hour % 12
+    if hour == 0:
+        hour = 12
+    return f"{hour:02d}:{minute:02d}:{second:02d} {suffix}"
+
+
+
+
 
 class StudentUserTerminal:
     def __init__(self, db_name):
@@ -26,6 +37,8 @@ class StudentUserTerminal:
     def check_in(self, student_id,reason):
         current_time = datetime.now(tz)
         current_time = current_time.strftime("%H:%M:%S")
+        print(current_time)
+        current_time = convert_to_am_pm(current_time)
         self.cursor.execute('''UPDATE students SET check_in_time = ?, checkedin = 1, checkedout = 0, reason = ?
                                WHERE student_id = ?''', (current_time, reason, student_id))
         if self.cursor.rowcount > 0:
@@ -37,6 +50,9 @@ class StudentUserTerminal:
     def check_out(self, student_id, reason):
         current_time = datetime.now(tz)
         current_time = current_time.strftime("%H:%M:%S")
+        print(current_time)
+
+        current_time = convert_to_am_pm(current_time)
         self.cursor.execute('''UPDATE students SET check_out_time = ?, checkedin = 0, checkedout = 1, reason = ? WHERE student_id = ?''',(current_time, reason, student_id))
         if self.cursor.rowcount > 0:
             self.connection.commit()
@@ -67,5 +83,17 @@ class StudentUserTerminal:
             return False
     def close(self):
         self.connection.close()
+
+    def convert_to_am_pm(military_time):
+        hour = int(military_time[:2])
+        minute = military_time[2:]
+        am_pm = 'AM' if hour < 12 else 'PM'
+
+        if hour == 0:
+            hour = 12
+        elif hour > 12:
+            hour -= 12
+
+        return f'{hour}:{minute} {am_pm}'
 
 
