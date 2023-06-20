@@ -5,9 +5,8 @@ import sqlite3
 from excel import export_cursor_to_xlsx
 import re
 from dateutil import parser
-from datetime import datetime, timedelta, date
-
-from pytz import timezone
+import time
+import datetime
 
 
 
@@ -18,7 +17,6 @@ app.secret_key = 'cancun'
 login_manager = LoginManager(app)
 login_manager.login_view = "signin"
 current_day = None
-tz = timezone('US/Eastern')
 
 
 
@@ -58,8 +56,13 @@ def load_user(user_id):
 @app.before_first_request
 def set_current_day():
     global current_day
-    global tz
-    current_day = datetime.now(tz).date()
+    #bruh = time.localtime()
+    current_timestamp = time.time()
+    yesterday_timestamp = current_timestamp - 86400
+    yesterday_struct_time = time.localtime(yesterday_timestamp)
+    yesterday_datetime = datetime.datetime.fromtimestamp(yesterday_timestamp)
+    current_day = yesterday_datetime.strftime("%Y-%m-%d")
+    #current_day = time.strftime("%Y-%m-%d", bruh)
 
 
 
@@ -166,9 +169,8 @@ def admindashboard():
         return redirect(url_for('signin'))
 
 def is_current_date(input_date):
-    global tz
-    current_date = date.today()
-    current_date = str(current_date)
+    current_date = time.localtime()
+    current_date = time.strftime("%Y-%m-%d")
     input_date = str(input_date)
     return input_date == current_date
 
@@ -237,11 +239,17 @@ def sort_students(column,order):
 @app.route('/', methods=['GET', 'POST'])
 def signin():
     global current_day
-    today = date.today()
+    bruh = time.localtime()
+    today = time.strftime("%Y-%m-%d", bruh)
     if today > current_day:
-        current_date = datetime.date.today()
-        yesterday = current_date - datetime.timedelta(days=1)
-        duplicate_table_name = 'd' + yesterday.strftime("%Y%m%d")
+        current_date = time.strftime("%Y-%m-%d")
+        #get yesteday
+        current_timestamp = time.time()
+        yesterday_timestamp = current_timestamp - 86400
+        yesterday_struct_time = time.localtime(yesterday_timestamp)
+        yesterday_datetime = datetime.datetime.fromtimestamp(yesterday_timestamp)
+        yesterday = yesterday_datetime.strftime("%Y-%m-%d")
+        duplicate_table_name = 'd' + yesterday_datetime.strftime("%Y%m%d")
         # Perform your desired action here
         duplicate_and_clear_table('students.db', 'students', duplicate_table_name, ['check_in_time', 'check_out_time', 'checkedin','checkedout','reason'])
         current_day = today
@@ -284,4 +292,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
